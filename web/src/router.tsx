@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
     Navigate,
@@ -94,6 +94,11 @@ function SettingsIcon(props: { className?: string }) {
     )
 }
 
+const SIDEBAR_WIDTH_STORAGE_KEY = 'hapi-sidebar-width'
+const DEFAULT_SIDEBAR_WIDTH = 420
+const MIN_SIDEBAR_WIDTH = 200
+const MAX_SIDEBAR_WIDTH = 800
+
 function SessionsPage() {
     const { api } = useAppContext()
     const navigate = useNavigate()
@@ -101,6 +106,56 @@ function SessionsPage() {
     const matchRoute = useMatchRoute()
     const { t } = useTranslation()
     const { sessions, isLoading, error, refetch } = useSessions(api)
+
+    const [sidebarWidth, setSidebarWidth] = useState(() => {
+        try {
+            const stored = localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY)
+            if (stored) return Math.max(MIN_SIDEBAR_WIDTH, Math.min(MAX_SIDEBAR_WIDTH, parseInt(stored, 10)))
+        } catch { /* ignore */ }
+        return DEFAULT_SIDEBAR_WIDTH
+    })
+    const [isLargeScreen, setIsLargeScreen] = useState(
+        () => typeof window !== 'undefined' && window.matchMedia('(min-width: 1024px)').matches
+    )
+    const isResizingRef = useRef(false)
+    const startXRef = useRef(0)
+    const startWidthRef = useRef(0)
+
+    useEffect(() => {
+        const mql = window.matchMedia('(min-width: 1024px)')
+        const onChange = (e: MediaQueryListEvent) => setIsLargeScreen(e.matches)
+        mql.addEventListener('change', onChange)
+        return () => mql.removeEventListener('change', onChange)
+    }, [])
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizingRef.current) return
+            const delta = e.clientX - startXRef.current
+            const newWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, startWidthRef.current + delta))
+            setSidebarWidth(newWidth)
+        }
+        const handleMouseUp = (e: MouseEvent) => {
+            if (!isResizingRef.current) return
+            isResizingRef.current = false
+            const delta = e.clientX - startXRef.current
+            const newWidth = Math.min(MAX_SIDEBAR_WIDTH, Math.max(MIN_SIDEBAR_WIDTH, startWidthRef.current + delta))
+            try { localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(newWidth)) } catch { /* ignore */ }
+        }
+        document.addEventListener('mousemove', handleMouseMove)
+        document.addEventListener('mouseup', handleMouseUp)
+        return () => {
+            document.removeEventListener('mousemove', handleMouseMove)
+            document.removeEventListener('mouseup', handleMouseUp)
+        }
+    }, [])
+
+    const handleResizeStart = useCallback((e: React.MouseEvent) => {
+        isResizingRef.current = true
+        startXRef.current = e.clientX
+        startWidthRef.current = sidebarWidth
+        e.preventDefault()
+    }, [sidebarWidth])
 
     const handleRefresh = useCallback(() => {
         void refetch()
@@ -114,7 +169,8 @@ function SessionsPage() {
     return (
         <div className="flex h-full min-h-0">
             <div
-                className={`${isSessionsIndex ? 'flex' : 'hidden lg:flex'} w-full lg:w-[420px] xl:w-[480px] shrink-0 flex-col bg-[var(--app-bg)] lg:border-r lg:border-[var(--app-divider)]`}
+                className={`${isSessionsIndex ? 'flex' : 'hidden lg:flex'} w-full shrink-0 flex-col bg-[var(--app-bg)]`}
+                style={isLargeScreen ? { width: sidebarWidth } : undefined}
             >
                 <div className="bg-[var(--app-bg)] pt-[env(safe-area-inset-top)]">
                     <div className="mx-auto w-full max-w-content flex items-center justify-between px-3 py-2">
@@ -163,6 +219,12 @@ function SessionsPage() {
                     />
                 </div>
             </div>
+
+            {/* Drag handle - desktop only */}
+            <div
+                className="hidden lg:flex w-1 shrink-0 cursor-col-resize items-center justify-center bg-[var(--app-divider)] hover:bg-[var(--app-link)] active:bg-[var(--app-link)] transition-colors select-none"
+                onMouseDown={handleResizeStart}
+            />
 
             <div className={`${isSessionsIndex ? 'hidden lg:flex' : 'flex'} min-w-0 flex-1 flex-col bg-[var(--app-bg)]`}>
                 <div className="flex-1 min-h-0">
