@@ -93,6 +93,7 @@ export default {
   'button.paste': '粘贴',
 
   // New session form
+  'newSession.title': '创建会话',
   'newSession.machine': '机器',
   'newSession.directory': '目录',
   'newSession.placeholder': '/path/to/project',
@@ -227,6 +228,9 @@ export default {
   'syncing.title': '同步中…',
   'syncing.message': '正在同步您的数据。',
   'reconnecting.message': '正在重新连接...',
+  'reconnecting.reason.error': '流连接错误',
+  'reconnecting.reason.closed': '流连接已关闭',
+  'reconnecting.reason.heartbeatTimeout': '心跳超时',
 
   // Send blocked
   'send.blocked.title': '无法发送消息',
@@ -247,6 +251,10 @@ export default {
   'settings.language.title': '语言',
   'settings.language.label': '语言',
   'settings.display.title': '显示',
+  'settings.display.appearance': '外观',
+  'settings.display.appearance.system': '跟随系统',
+  'settings.display.appearance.dark': '深色',
+  'settings.display.appearance.light': '浅色',
   'settings.display.fontSize': '字体大小',
   'settings.voice.title': '语音助手',
   'settings.voice.language': '语音语言',
